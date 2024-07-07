@@ -2,31 +2,48 @@ import crypto from "crypto";
 import prismaClient from '../utils/prisma';
 import { scheduleSchema } from "../models/schedule.model";
 import dayjs from "../utils/days"
+import { Schedule } from "@prisma/client";
+import { Request, Response } from "express";
 
 class ScheduleController {
   constructor() {
   }
 
-  async index(request, response) {
+  async index(request: Request, response: Response) {
     try {    
         const [scheduleTotalCount, schedules] = await Promise.all([
           prismaClient.schedule.count(),
-          prismaClient.schedule.findMany(),
+          prismaClient.schedule.findMany({orderBy: {dateTime: 'asc'}}),
         ]);
-    
+
+        const schedulesGroup = schedules.reduce(
+            (result, schedule) => {
+                const [date, time] = schedule.dateTime.toISOString().split('T'); 
+                return ({
+                    ...result,
+                    [date]: {
+                        ...(result[date] || []),
+                            [time]: [
+                                ...(result[date] ? result[date][time] || [] : []),
+                                schedule,
+                            ]
+                    },
+                })}, 
+            {},
+          );
         return response.send({
           totalCount: scheduleTotalCount,
-          items: schedules,
+          items: schedulesGroup,
         });
     } catch (error) {
       return response.status(400).json({ error: error.message });
     }
   }
 
-  async store(request, response) {
+  async store(request: Request, response: Response) {
     try {
-        const schedule = request.body;
-    
+        const schedule = request.body as Schedule;
+        schedule.dateTime = dayjs(schedule.dateTime).set('minute', 0).set('second', 0).toDate()
     
         const { success, data, error } = scheduleSchema.safeParse(schedule);
     
@@ -37,8 +54,8 @@ class ScheduleController {
         const patient = await prismaClient.patient.create({data: {
             ...data.patient
         }})
-        const startTime = dayjs(schedule.time).set('hour', 0).set('minute', 0).set('second', 0).toISOString()
-        const endTime = dayjs(schedule.time).set('hour', 23).set('minute', 59).set('second', 59).toISOString()
+        const startTime = dayjs(schedule.dateTime).set('hour', 0).toISOString()
+        const endTime = dayjs(schedule.dateTime).set('hour', 23).set('minute', 59).set('second', 59).toISOString()
         const [schedulesInTime, schedulesInDay ] = await Promise.all([
             prismaClient.schedule.count({ where: 
                { dateTime: data.dateTime }
