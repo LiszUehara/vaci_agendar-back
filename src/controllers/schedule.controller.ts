@@ -13,12 +13,27 @@ class ScheduleController {
     try {    
         const [scheduleTotalCount, schedules] = await Promise.all([
           prismaClient.schedule.count(),
-          prismaClient.schedule.findMany(),
+          prismaClient.schedule.findMany({orderBy: {dateTime: 'asc'}}),
         ]);
-    
+
+        const schedulesGroup = schedules.reduce(
+            (result, schedule) => {
+                const [date, time] = schedule.dateTime.toISOString().split('T'); 
+                return ({
+                    ...result,
+                    [date]: {
+                        ...(result[date] || []),
+                            [time]: [
+                                ...(result[date] ? result[date][time] || [] : []),
+                                schedule,
+                            ]
+                    },
+                })}, 
+            {},
+          );
         return response.send({
           totalCount: scheduleTotalCount,
-          items: schedules,
+          items: schedulesGroup,
         });
     } catch (error) {
       return response.status(400).json({ error: error.message });
