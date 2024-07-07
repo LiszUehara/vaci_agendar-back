@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 
 import './routes/schedule.router.ts';
+import { publicRouter } from './routes/router.ts';
 
 const PORT = process.env.PORT || 5000;
 
@@ -14,6 +15,7 @@ server.use(helmet());
 server.use(morgan('dev'));
 server.use(cors());
 server.use(express.json());
+server.use(publicRouter);
 
 server.use('*', (request, response) => {
   response.status(404).send({ message: 'Rota não encontrada ou indisponível' });
