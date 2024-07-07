@@ -1,19 +1,22 @@
 import zod from "zod";
+import { IPatient } from "./patient.model";
 
-export let scheduleModel = zod.object({
-    id: zod
-        .string({ message: "Campo id esta invalido"})
-        .uuid(),
-    time: zod.date({message: "Campo time esta invalido"}),
-    createdAt: zod.date().optional(),
-    // createdBy: zod.string().optional(),
-    updatedAt: zod.date().optional(),
-    // updatedBy: zod.string().optional(),
-    patients: zod.array(
-        zod.object({
-            id: zod.string().uuid(),
-            status: zod.enum(["completed", "cancelled", "unfulfilled", "other"]),
-            note: zod.string().nullable(),
-        })
-    ),
+export interface ISchedule {
+    id: string;
+    time: Date;
+    createAt?: Date;
+    updatedAt?: Date;
+    patients: IPatient[] 
+}
+
+export let scheduleSchema = zod.object({
+    dateTime: zod.coerce.date({message: "Campo dateTime esta invalido"}),
+    status: zod.enum(["completed", "cancelled", "unrealized", "other"]).nullable(),
+    note: zod.string().nullable(),
+    patient: zod
+        .object({
+            name: zod.string(),
+            birthDate: zod.coerce.date()
+        }),
 });
+

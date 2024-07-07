@@ -12,7 +12,7 @@ publicRouter.get('/api/schedule/:id', (request, response) =>
 );
 
 publicRouter.post('/api/schedule', (request, response) =>
-    scheduleController.update(request, response)
+    scheduleController.store(request, response)
 );
 
 publicRouter.put('/api/schedule/:id', (request, response) =>
