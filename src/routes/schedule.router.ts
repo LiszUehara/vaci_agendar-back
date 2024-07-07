@@ -18,3 +18,7 @@ publicRouter.post('/api/schedule', (request, response) =>
 publicRouter.put('/api/schedule/:id', (request, response) =>
   scheduleController.update(request, response)
 );
+
+publicRouter.delete('/api/schedule/:id', (request, response) =>
+  scheduleController.delete(request, response)
+);

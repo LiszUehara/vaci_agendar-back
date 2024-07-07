@@ -97,7 +97,82 @@ class ScheduleController {
 
   async update(request, response) {
     try {
-      return response.send("Atualização");
+
+      const { id } = request.params;
+      const scheduleUpdated = request.body  as Schedule;
+      scheduleUpdated.dateTime = dayjs(scheduleUpdated.dateTime).set('minute', 0).set('second', 0).toDate();
+      const scheduleOld = await prismaClient.schedule.findFirst({
+        where: { id },  
+      });
+  
+      if (!scheduleOld) {
+        return response.status(404).send({ message: 'Agendamento não encontrado.' });
+      }
+      
+      const { success, data, error } = scheduleSchema.safeParse(scheduleUpdated);
+      
+      if (!success) {
+        return response.status(400).send(error);
+      }
+      
+      const [oldDate, oldTime] = scheduleOld?.dateTime.toISOString().split('T')
+      const [updatedDate, updatedTime] = scheduleUpdated?.dateTime.toISOString().split('T')
+      let schedulesInTime=0, schedulesInDay=0;
+      
+      if(oldDate!==updatedDate){
+        const startTime = dayjs(scheduleUpdated.dateTime).set('hour', 0).toISOString()
+        const endTime = dayjs(scheduleUpdated.dateTime).set('hour', 23).set('minute', 59).set('second', 59).toISOString();
+        
+        [schedulesInTime, schedulesInDay ] = await Promise.all([
+          prismaClient.schedule.count({ where: 
+            { dateTime: data.dateTime }
+          }),
+          prismaClient.schedule.count({ where: 
+            {dateTime: {
+              gte: startTime,
+              lte: endTime,
+            }, }
+          }),
+        ])
+      } else if(oldTime !== updatedTime){
+        schedulesInTime = await prismaClient.schedule.count(
+          { where: 
+              { dateTime: data.dateTime }
+          });
+      }
+      if(schedulesInTime>=2){
+          return response.status(409).json({message: "Horário já contem 2 agendamento, selecione outro horário ou procure nossa central de atendimento."});
+      }
+      
+      if(schedulesInDay>=20){
+        return response.status(409).json({message: "Este dia já contem 20 agendamento, selecione outro dia ou procure nossa central de atendimento."});
+      }
+      if(!scheduleUpdated.patientId){
+        return response.status(400).json({message: "Paciente não informado"});
+      }
+      const patient = await prismaClient.patient.update({
+        data: {
+          ...data.patient
+        },
+        where: {
+          id: scheduleUpdated.patientId
+        }
+    })
+      const schedule = await prismaClient.schedule.update({
+        data: {
+          dateTime: new Date(scheduleUpdated.dateTime).toISOString(),
+          status: scheduleUpdated.status,
+          note: scheduleUpdated.note,
+          patient: {
+              connect: { id: patient?.id },
+          },
+          updatedAt: new Date()
+        },
+        where: { id },
+        include: { patient: true },
+      });
+
+    return response.send(schedule);
     } catch (error) {
       return response.status(400).json({ error });
     }
@@ -128,6 +203,35 @@ class ScheduleController {
         response.status(400).send(error);
     }
   }
+
+  async delete(request: Request, response: Response) {
+    try {
+        const { id } = request.params;
+    
+        const schedule = await prismaClient.schedule.findFirst({
+          where: { id },  
+        });
+    
+        if (!schedule) {
+          return response.status(404).send({ message: 'Agendamento não encontrado.' });
+        }
+
+        const resultDeleteSchedule = await prismaClient.schedule.delete({
+            where: { id },  
+          });
+          if(resultDeleteSchedule.patientId){
+              const resultDeletePatient = await prismaClient.patient.delete({
+                  where: { id:  resultDeleteSchedule.patientId},  
+                });
+            }
+
+        response.send(schedule);
+    } catch (error) {
+        response.status(400).send(error);
+    }
+  }
 }
+
+
 
 export default ScheduleController;
