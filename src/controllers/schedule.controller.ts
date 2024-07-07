@@ -13,7 +13,10 @@ class ScheduleController {
     try {    
         const [scheduleTotalCount, schedules] = await Promise.all([
           prismaClient.schedule.count(),
-          prismaClient.schedule.findMany({orderBy: {dateTime: 'asc'}}),
+          prismaClient.schedule.findMany({
+            orderBy: {dateTime: 'asc'},
+            include: { patient: true}
+            }),
         ]);
 
         const schedulesGroup = schedules.reduce(
@@ -101,11 +104,28 @@ class ScheduleController {
   }
 
 
-  async getOne(request, response) {
+  async getOne(request: Request, response: Response) {
     try {
-      response.status(200).send("Listagem por id");
+        const { id } = request.params;
+    
+        const schedule = await prismaClient.schedule.findUnique({
+          where: { id },  
+          select: {
+            id: true,
+            dateTime: true,
+            status: true,
+            note: true,
+            patient: true,
+        },
+        });
+    
+        if (!schedule) {
+          return response.status(404).send({ message: 'Agendamento não encontrado.' });
+        }
+    
+        response.send(schedule);
     } catch (error) {
-      response.status(400).send(error);
+        response.status(400).send(error);
     }
   }
 }
