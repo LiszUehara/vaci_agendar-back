@@ -128,6 +128,35 @@ class ScheduleController {
         response.status(400).send(error);
     }
   }
+
+  async delete(request: Request, response: Response) {
+    try {
+        const { id } = request.params;
+    
+        const schedule = await prismaClient.schedule.findFirst({
+          where: { id },  
+        });
+    
+        if (!schedule) {
+          return response.status(404).send({ message: 'Agendamento não encontrado.' });
+        }
+
+        const resultDeleteSchedule = await prismaClient.schedule.delete({
+            where: { id },  
+          });
+          if(resultDeleteSchedule.patientId){
+              const resultDeletePatient = await prismaClient.patient.delete({
+                  where: { id:  resultDeleteSchedule.patientId},  
+                });
+            }
+
+        response.send(schedule);
+    } catch (error) {
+        response.status(400).send(error);
+    }
+  }
 }
+
+
 
 export default ScheduleController;
