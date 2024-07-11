@@ -24,6 +24,7 @@ model Patient {
   id        String   @id @default(uuid())
   name      String
   birthDate DateTime
+  cpf       String
   createdAt DateTime @default(now())
   Schedule Schedule[]
 }
