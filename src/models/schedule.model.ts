@@ -8,6 +8,7 @@ export let scheduleSchema = zod.object({
     patient: zod
         .object({
             name: zod.string(),
+            cpf: zod.string(),
             birthDate: zod.coerce.date()
         }),
 });

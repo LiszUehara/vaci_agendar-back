@@ -46,38 +46,45 @@ class ScheduleController {
   async store(request: Request, response: Response) {
     try {
         const schedule = request.body as Schedule;
-        schedule.dateTime = dayjs(schedule.dateTime).set('minute', 0).set('second', 0).toDate()
+        schedule.dateTime = dayjs(schedule.dateTime).set('minute', 0).set('second', 0).set('millisecond', 0).toDate()
     
         const { success, data, error } = scheduleSchema.safeParse(schedule);
     
         if (!success) {
           return response.status(400).send(error);
         }
-    
-        const patient = await prismaClient.patient.create({data: {
-            ...data.patient
+        const patientWithCPF = await prismaClient.patient.findFirst({where: {
+          cpf: data.patient.cpf
         }})
+
+        if(patientWithCPF){
+          return response.status(409).json({message: "CPF já cadastrado"});
+        }
         const startTime = dayjs(schedule.dateTime).set('hour', 0).toISOString()
         const endTime = dayjs(schedule.dateTime).set('hour', 23).set('minute', 59).set('second', 59).toISOString()
         const [schedulesInTime, schedulesInDay ] = await Promise.all([
-            prismaClient.schedule.count({ where: 
-               { dateTime: data.dateTime }
-            }),
-            prismaClient.schedule.count({ where: 
-                {dateTime: {
-                    gte: startTime,
-                    lte: endTime,
-                  }, }
-             }),
+          prismaClient.schedule.count({ where: 
+            { dateTime: data.dateTime }
+          }),
+          prismaClient.schedule.count({ where: 
+            {dateTime: {
+              gte: startTime,
+              lte: endTime,
+            }, }
+          }),
         ])
+        
         if(schedulesInTime>=2){
-            return response.status(409).json({message: "Horário já contem 2 agendamento, selecione outro horário ou procure nossa central de atendimento."});
+          return response.status(409).json({message: "Horário já contem 2 agendamento, selecione outro horário ou procure nossa central de atendimento."});
         }
-
+        
         if(schedulesInDay>=20){
-            return response.status(409).json({message: "Este dia já contem 20 agendamento, selecione outro dia ou procure nossa central de atendimento."});
+          return response.status(409).json({message: "Este dia já contem 20 agendamento, selecione outro dia ou procure nossa central de atendimento."});
         }
-
+        
+        const patient = await prismaClient.patient.create({data: {
+            ...data.patient
+        }})
         const newSchedule = await prismaClient.schedule.create({
           data: {
             dateTime: new Date(schedule.dateTime).toISOString(),
@@ -100,7 +107,7 @@ class ScheduleController {
 
       const { id } = request.params;
       const scheduleUpdated = request.body  as Schedule;
-      scheduleUpdated.dateTime = dayjs(scheduleUpdated.dateTime).set('minute', 0).set('second', 0).toDate();
+      scheduleUpdated.dateTime = dayjs(scheduleUpdated.dateTime).set('minute', 0).set('second', 0).set('millisecond', 0).toDate();
       const scheduleOld = await prismaClient.schedule.findFirst({
         where: { id },  
       });
