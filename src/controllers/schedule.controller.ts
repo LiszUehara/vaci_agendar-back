@@ -15,7 +15,13 @@ class ScheduleController {
           prismaClient.schedule.count(),
           prismaClient.schedule.findMany({
             orderBy: {dateTime: 'asc'},
-            include: { patient: true}
+            select: {
+              id: true,
+              dateTime: true,
+              status: true,
+              note: true,
+              patient: true,
+          },
             }),
         ]);
 
@@ -36,7 +42,7 @@ class ScheduleController {
           );
         return response.send({
           totalCount: scheduleTotalCount,
-          items: schedulesGroup,
+          items: schedules,
         });
     } catch (error) {
       return response.status(400).json({ error: error.message });
