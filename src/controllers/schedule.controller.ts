@@ -5,16 +5,22 @@ import dayjs from "../utils/days"
 import { Schedule } from "@prisma/client";
 import { Request, Response } from "express";
 
+type OrderType = "desc" | "asc";
+
 class ScheduleController {
   constructor() {
   }
 
   async index(request: Request, response: Response) {
-    try {    
+    try {
+        let { order, search } = request.query;
+        const searchValue  = typeof search === 'string' ? search : ''; 
+        const orderValue: OrderType  = order === 'desc' ? 'desc' : 'asc'; 
         const [scheduleTotalCount, schedules] = await Promise.all([
           prismaClient.schedule.count(),
           prismaClient.schedule.findMany({
-            orderBy: {dateTime: 'asc'},
+            where: { patient: { cpf: { contains: searchValue }} },
+            orderBy: {dateTime: orderValue},
             select: {
               id: true,
               dateTime: true,
