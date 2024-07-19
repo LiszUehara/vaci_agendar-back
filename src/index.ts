@@ -17,7 +17,7 @@ server.use(cors());
 server.use(express.json());
 server.use(publicRouter);
 
-server.use('*', (request, response) => {
+server.use('*', (_request, response) => {
   response.status(404).send({ message: 'Rota não encontrada ou indisponível' });
 });
 
