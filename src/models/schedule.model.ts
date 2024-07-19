@@ -1,5 +1,5 @@
+import { Schedule, Patient } from '@prisma/client';
 import zod from "zod";
-import { IPatient } from "./patient.model";
 
 export let scheduleSchema = zod.object({
     dateTime: zod.coerce.date({message: "Campo dateTime esta invalido"}),
@@ -12,4 +12,8 @@ export let scheduleSchema = zod.object({
             birthDate: zod.coerce.date()
         }),
 });
+
+export interface ISchedule extends Schedule {
+    patient: Patient
+}
 
