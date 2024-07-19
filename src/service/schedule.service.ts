@@ -23,23 +23,7 @@ class ScheduleService {
           },
             }),
         ]);
-        /*
-        const _schedulesGroup = schedules.reduce(
-            (result, schedule) => {
-                const [date, time] = schedule.dateTime.toISOString().split('T'); 
-                return ({
-                    ...result,
-                    [date]: {
-                        ...(result[date] || []),
-                            [time]: [
-                                ...(result[date] ? result[date][time] || [] : []),
-                                schedule,
-                            ]
-                    },
-                })}, 
-            {},
-          );
-          */
+
         return ({
           totalCount: scheduleTotalCount,
           items: schedules,
